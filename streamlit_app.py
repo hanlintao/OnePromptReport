@@ -116,7 +116,9 @@ with st.sidebar:
     custom_urls = [st.text_input(f"网址 {i+1}：") for i in range(5)]
 
     st.header("选择模型")
-    use_gpt4o = st.checkbox("使用GPT-4o", value=False)
+    model_choice = st.radio("请选择模型", options=["ZhipuAI", "GPT-4o"])
+    use_gpt4o = model_choice == "GPT-4o"
+    
     openai_api_key = st.text_input("请输入OpenAI API Key：", type="password") if use_gpt4o else None
     openai_base_url = st.text_input("请输入OpenAI Base URL：", type="password") if use_gpt4o else None
 
