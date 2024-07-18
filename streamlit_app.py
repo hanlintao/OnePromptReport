@@ -164,26 +164,27 @@ if st.button("获取搜索结果"):
     if query and subscription_key:
         search_results = get_bing_search_results(query, subscription_key)
         if search_results:
-            st.header("搜索结果")
-            selected_urls = []
-            for result in search_results:
-                if st.checkbox(f"{result['title']} ({result['url']})\n{result['snippet']}", key=result['url']):
-                    selected_urls.append(result['url'])
+            st.session_state['search_results'] = search_results
 
-            if st.button("开始生成报告"):
-                if selected_urls:
-                    report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, selected_urls, use_gpt4o, openai_api_key, openai_base_url)
-                    if report_content:
-                        st.header("生成的咨询报告")
-                        typewriter_effect(report_content)
-                        with open(temp_filename, "rb") as file:
-                            btn = st.download_button(
-                                label="下载咨询报告",
-                                data=file,
-                                file_name="consulting_report.docx",
-                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                            )
-                else:
-                    st.error("请选择至少一个搜索结果")
-    else:
-        st.error("请输入报告主题和Bing Search API的Subscription Key")
+if 'search_results' in st.session_state:
+    st.header("搜索结果")
+    selected_urls = []
+    for result in st.session_state['search_results']:
+        if st.checkbox(f"{result['title']} ({result['url']})\n{result['snippet']}", key=result['url']):
+            selected_urls.append(result['url'])
+
+    if st.button("开始生成报告"):
+        if selected_urls:
+            report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, selected_urls, use_gpt4o, openai_api_key, openai_base_url)
+            if report_content:
+                st.header("生成的咨询报告")
+                typewriter_effect(report_content)
+                with open(temp_filename, "rb") as file:
+                    btn = st.download_button(
+                        label="下载咨询报告",
+                        data=file,
+                        file_name="consulting_report.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+        else:
+            st.error("请选择至少一个搜索结果")
