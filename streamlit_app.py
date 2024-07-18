@@ -27,12 +27,24 @@ def get_bing_search_results(query, subscription_key, count=10):
     return results
 
 # 打字机效果函数
-def typewriter_effect(text, speed=0.05):
+def typewriter_effect(text, speed=0.0005):
     placeholder = st.empty()
+    # 添加自定义样式来调整宽度
+    custom_css = """
+    <style>
+    .typewriter-effect {
+        width: 100%;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
     current_text = ""
     for char in text:
         current_text += char
-        placeholder.markdown(f"```{current_text}```")
+        placeholder.markdown(f'<div class="typewriter-effect"><pre>{current_text}</pre></div>', unsafe_allow_html=True)
         time.sleep(speed)
 
 # 报告生成函数
