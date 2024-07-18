@@ -1,6 +1,9 @@
 import streamlit as st
 import requests
 from docx import Document
+from docx.shared import Pt
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 import tempfile
 import os
 import time
@@ -27,7 +30,7 @@ def get_bing_search_results(query, subscription_key, count=10):
     return results
 
 # 打字机效果函数
-def typewriter_effect(text, speed=0.0005):
+def typewriter_effect(text, speed=0.005):
     placeholder = st.empty()
     # 添加自定义样式来调整宽度
     custom_css = """
@@ -46,6 +49,14 @@ def typewriter_effect(text, speed=0.0005):
         current_text += char
         placeholder.markdown(f'<div class="typewriter-effect"><pre>{current_text}</pre></div>', unsafe_allow_html=True)
         time.sleep(speed)
+
+# 设置段落字体为宋体的函数
+def set_font_to_songti(paragraph):
+    run = paragraph.add_run()
+    run.font.name = '宋体'
+    r = run._element
+    r.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+    return run
 
 # 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
@@ -83,7 +94,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 
                 if use_gpt4o:
                     extracted_content = llm.invoke(prompt1.format(content=content)).content
-                    typewriter_effect(extracted_content)
+                    #typewriter_effect(extracted_content)
                 else:
                     prompt = prompt1.format(content=content)
                     response = client.chat.completions.create(
@@ -93,7 +104,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                         ],
                     )
                     extracted_content = response.choices[0].message.content
-                    typewriter_effect(extracted_content)
+                    #typewriter_effect(extracted_content)
 
                 combined_content.append(extracted_content)
                 references.append({
@@ -112,7 +123,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
     try:
         if use_gpt4o:
             report_content = llm.invoke(report_prompt).content
-            typewriter_effect(report_content)
+            #typewriter_effect(report_content)
         else:
             report_response = client.chat.completions.create(
                 model="glm-4-0520",
@@ -121,7 +132,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                 ],
             )
             report_content = report_response.choices[0].message.content
-            typewriter_effect(report_content)
+            #typewriter_effect(report_content)
     except KeyError as e:
         st.error(f"生成报告时发生错误: {e}")
         st.error(f"报告提示词: {report_prompt}")
@@ -129,15 +140,26 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 
     report_document = Document()
     report_document.add_heading('咨询报告', level=1)
-    report_document.add_paragraph(report_content)
+    set_font_to_songti(report_document.paragraphs[-1])
+
+    p = report_document.add_paragraph(report_content)
+    set_font_to_songti(p)
 
     report_document.add_heading('附录', level=1)
+    set_font_to_songti(report_document.paragraphs[-1])
+
     for i, reference in enumerate(references, 1):
         report_document.add_heading(f'参考网址 {i}', level=2)
-        report_document.add_paragraph(reference["url"], style='BodyText')
+        set_font_to_songti(report_document.paragraphs[-1])
+
+        p = report_document.add_paragraph(reference["url"], style='BodyText')
+        set_font_to_songti(p)
 
         report_document.add_heading('摘要', level=3)
-        report_document.add_paragraph(reference["summary"], style='BodyText')
+        set_font_to_songti(report_document.paragraphs[-1])
+
+        p = report_document.add_paragraph(reference["summary"], style='BodyText')
+        set_font_to_songti(p)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
         temp_filename = tmp_file.name
