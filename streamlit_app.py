@@ -24,10 +24,12 @@ def get_bing_search_urls(query, subscription_key, count=5):
 
 # 打字机效果函数
 def typewriter_effect(text, speed=0.05):
+    placeholder = st.empty()
+    current_text = ""
     for char in text:
-        st.write(char, end='', flush=True)
+        current_text += char
+        placeholder.markdown(f"```{current_text}```")
         time.sleep(speed)
-    st.write("")  # 换行
 
 # 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
@@ -62,6 +64,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 
                 if use_gpt4o:
                     extracted_content = llm.invoke(prompt1.format(content=content)).content
+                    typewriter_effect(extracted_content)
                 else:
                     prompt = prompt1.format(content=content)
                     response = client.chat.completions.create(
@@ -71,6 +74,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                         ],
                     )
                     extracted_content = response.choices[0].message.content
+                    typewriter_effect(extracted_content)
 
                 combined_content.append(extracted_content)
                 references.append({
