@@ -3,3 +3,4 @@ pandas
 python-docx
 requests
 zhipuai
+langchain-openai
