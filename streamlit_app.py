@@ -30,7 +30,8 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
                 full_url = f"https://r.jina.ai/{url}"
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": f"Bearer {jina_api_key}"
+                    "Authorization": f"Bearer {jina_api_key}",
+                    "X-Return-Format": "text"
                 }
 
                 try:
