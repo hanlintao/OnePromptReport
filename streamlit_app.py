@@ -5,11 +5,11 @@ import tempfile
 import os
 
 # Zhipu AI client配置
-from zhipuai import Client
+from zhipuai import ZhipuAI
 
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
     endpoint = "https://api.bing.microsoft.com/v7.0/search"
-    client = Client(api_key=zhipuai_api_key)
+    client = ZhipuAI(api_key=zhipuai_api_key)
     
     mkt = 'en-US'
     params = {'q': query, 'mkt': mkt}
