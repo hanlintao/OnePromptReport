@@ -4,20 +4,16 @@ from docx import Document
 import tempfile
 import os
 
-# Zhipu AI client配置
+# 导入所需的库
 from zhipuai import ZhipuAI
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
+# 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
     if use_gpt4o:
-        if openai_api_key:
-            os.environ["OPENAI_API_KEY"] = openai_api_key
-        if openai_base_url:
-            os.environ["OPENAI_BASE_URL"] = openai_base_url
         llm = ChatOpenAI(model="gpt-4o")
-        chain = ChatPromptTemplate.from_messages([("system", prompt1), ("user", "{input}")]) | llm | StrOutputParser()
     else:
         client = ZhipuAI(api_key=zhipuai_api_key)
 
@@ -46,7 +42,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                 content = response_data['data']['text']
 
                 if use_gpt4o:
-                    extracted_content = chain.invoke({"input": content}).text
+                    extracted_content = llm.invoke(prompt1.format(content=content))
                 else:
                     prompt = prompt1.format(content=content)
                     response = client.chat.completions.create(
@@ -73,7 +69,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 
     try:
         if use_gpt4o:
-            report_content = chain.invoke({"input": report_prompt}).text
+            report_content = llm.invoke(report_prompt)
         else:
             report_response = client.chat.completions.create(
                 model="glm-4-0520",
@@ -105,6 +101,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 
     return report_content, temp_filename
 
+# Streamlit应用程序
 st.title("咨询报告一键生成器")
 
 with st.sidebar:
