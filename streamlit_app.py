@@ -42,7 +42,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                 content = response_data['data']['text']
 
                 if use_gpt4o:
-                    extracted_content = llm.invoke(prompt1.format(content=content))
+                    extracted_content = llm.invoke(prompt1.format(content=content)).content
                 else:
                     prompt = prompt1.format(content=content)
                     response = client.chat.completions.create(
@@ -69,7 +69,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 
     try:
         if use_gpt4o:
-            report_content = llm.invoke(report_prompt)
+            report_content = llm.invoke(report_prompt).content
         else:
             report_response = client.chat.completions.create(
                 model="glm-4-0520",
