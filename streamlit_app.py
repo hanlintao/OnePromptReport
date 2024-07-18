@@ -71,16 +71,21 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
     combined_text = '\n'.join(combined_content)
     report_prompt = prompt2.format(content=combined_text)
 
-    if use_gpt4o:
-        report_content = chain.invoke({"input": report_prompt}).text
-    else:
-        report_response = client.chat.completions.create(
-            model="glm-4-0520",
-            messages=[
-                {"role": "user", "content": report_prompt}
-            ],
-        )
-        report_content = report_response.choices[0].message.content
+    try:
+        if use_gpt4o:
+            report_content = chain.invoke({"input": report_prompt}).text
+        else:
+            report_response = client.chat.completions.create(
+                model="glm-4-0520",
+                messages=[
+                    {"role": "user", "content": report_prompt}
+                ],
+            )
+            report_content = report_response.choices[0].message.content
+    except KeyError as e:
+        st.error(f"生成报告时发生错误: {e}")
+        st.error(f"报告提示词: {report_prompt}")
+        return None, None
 
     report_document = Document()
     report_document.add_heading('咨询报告', level=1)
