@@ -3,6 +3,7 @@ import requests
 from docx import Document
 import tempfile
 import os
+import time
 
 # 导入所需的库
 from zhipuai import ZhipuAI
@@ -20,6 +21,13 @@ def get_bing_search_urls(query, subscription_key, count=5):
     search_results = response.json()
     urls = [result["url"] for result in search_results["webPages"]["value"]]
     return urls
+
+# 打字机效果函数
+def typewriter_effect(text, speed=0.05):
+    for char in text:
+        st.write(char, end='', flush=True)
+        time.sleep(speed)
+    st.write("")  # 换行
 
 # 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
@@ -161,7 +169,7 @@ if st.button("生成报告"):
         report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o, openai_api_key, openai_base_url)
         if report_content:
             st.header("生成的咨询报告")
-            st.write(report_content)
+            typewriter_effect(report_content)
             with open(temp_filename, "rb") as file:
                 btn = st.download_button(
                     label="下载咨询报告",
