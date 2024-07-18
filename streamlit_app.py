@@ -10,10 +10,21 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
+# 使用Bing API进行搜索并获取网址
+def get_bing_search_urls(query, subscription_key, count=5):
+    headers = {"Ocp-Apim-Subscription-Key": subscription_key}
+    params = {"q": query, "count": count, "textDecorations": True, "textFormat": "HTML"}
+    search_url = "https://api.bing.microsoft.com/v7.0/search"
+    response = requests.get(search_url, headers=headers, params=params)
+    response.raise_for_status()
+    search_results = response.json()
+    urls = [result["url"] for result in search_results["webPages"]["value"]]
+    return urls
+
 # 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
     if use_gpt4o:
-        llm = ChatOpenAI(model="gpt-4o")
+        llm = ChatOpenAI(model="gpt-4-turbo")
     else:
         client = ZhipuAI(api_key=zhipuai_api_key)
 
@@ -133,20 +144,30 @@ query = st.text_input("请输入报告主题：")
 
 if st.button("生成报告"):
     if query and subscription_key and jina_api_key and (zhipuai_api_key or openai_api_key):
-        urls = [url for url in custom_urls if url]
-        if not urls:
-            st.error("请至少输入一个自定义网址")
+        # 获取用户输入的自定义URL
+        user_urls = [url for url in custom_urls if url]
+        if not user_urls:
+            # 如果用户没有输入任何自定义网址，则调用Bing API来从网上获取
+            urls = get_bing_search_urls(query, subscription_key, count=5)
         else:
-            report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o, openai_api_key, openai_base_url)
-            if report_content:
-                st.header("生成的咨询报告")
-                st.write(report_content)
-                with open(temp_filename, "rb") as file:
-                    btn = st.download_button(
-                        label="下载咨询报告",
-                        data=file,
-                        file_name="consulting_report.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    )
+            # 如果用户输入了1个自定义网址，那么剩下4个通过Bing API来获取
+            additional_urls_needed = 5 - len(user_urls)
+            if additional_urls_needed > 0:
+                additional_urls = get_bing_search_urls(query, subscription_key, count=additional_urls_needed)
+                urls = user_urls + additional_urls
+            else:
+                urls = user_urls
+
+        report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o, openai_api_key, openai_base_url)
+        if report_content:
+            st.header("生成的咨询报告")
+            st.write(report_content)
+            with open(temp_filename, "rb") as file:
+                btn = st.download_button(
+                    label="下载咨询报告",
+                    data=file,
+                    file_name="consulting_report.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
     else:
         st.error("请输入所有必需的字段")
