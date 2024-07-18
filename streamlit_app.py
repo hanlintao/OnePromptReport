@@ -103,9 +103,21 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
 st.title("咨询报告一键生成器")
 
 with st.sidebar:
+    st.header("选择模型")
+    model_choice = st.radio("请选择模型", options=["ZhipuAI", "GPT-4o"])
+    use_gpt4o = model_choice == "GPT-4o"
+
     st.header("API Keys 配置")
     subscription_key = st.text_input("请输入Bing Search API的Subscription Key：", type="password")
-    zhipuai_api_key = st.text_input("请输入Zhipu AI的API Key：", type="password")
+    if use_gpt4o:
+        openai_api_key = st.text_input("请输入OpenAI API Key：", type="password")
+        openai_base_url = st.text_input("请输入OpenAI Base URL：", type="password")
+        zhipuai_api_key = None
+    else:
+        zhipuai_api_key = st.text_input("请输入Zhipu AI的API Key：", type="password")
+        openai_api_key = None
+        openai_base_url = None
+
     jina_api_key = st.text_input("请输入Jina API的Key：", type="password")
     
     st.header("Prompt 配置")
@@ -115,17 +127,10 @@ with st.sidebar:
     st.header("自定义网址")
     custom_urls = [st.text_input(f"网址 {i+1}：") for i in range(5)]
 
-    st.header("选择模型")
-    model_choice = st.radio("请选择模型", options=["ZhipuAI", "GPT-4o"])
-    use_gpt4o = model_choice == "GPT-4o"
-    
-    openai_api_key = st.text_input("请输入OpenAI API Key：", type="password") if use_gpt4o else None
-    openai_base_url = st.text_input("请输入OpenAI Base URL：", type="password") if use_gpt4o else None
-
 query = st.text_input("请输入报告主题：")
 
 if st.button("生成报告"):
-    if query and subscription_key and zhipuai_api_key and jina_api_key:
+    if query and subscription_key and jina_api_key and (zhipuai_api_key or openai_api_key):
         urls = [url for url in custom_urls if url]
         if not urls:
             st.error("请至少输入一个自定义网址")
