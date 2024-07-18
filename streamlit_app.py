@@ -34,7 +34,7 @@ def typewriter_effect(text, speed=0.05):
 # 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
     if use_gpt4o:
-        llm = ChatOpenAI(model="gpt-4-turbo")
+        llm = ChatOpenAI(model="gpt-4o")
     else:
         client = ZhipuAI(api_key=zhipuai_api_key)
 
@@ -93,6 +93,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
     try:
         if use_gpt4o:
             report_content = llm.invoke(report_prompt).content
+            typewriter_effect(extracted_content)
         else:
             report_response = client.chat.completions.create(
                 model="glm-4-0520",
@@ -101,6 +102,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                 ],
             )
             report_content = report_response.choices[0].message.content
+             typewriter_effect(extracted_content)
     except KeyError as e:
         st.error(f"生成报告时发生错误: {e}")
         st.error(f"报告提示词: {report_prompt}")
