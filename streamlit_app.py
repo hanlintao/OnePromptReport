@@ -38,7 +38,10 @@ def typewriter_effect(text, speed=0.05):
 # 报告生成函数
 def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o=False, openai_api_key=None, openai_base_url=None):
     if use_gpt4o:
-        llm = ChatOpenAI(model="gpt-4o")
+        if not openai_api_key:
+            st.error("请提供OpenAI API Key")
+            return None, None
+        llm = ChatOpenAI(model="gpt-4o", api_key=openai_api_key, base_url=openai_base_url)
     else:
         client = ZhipuAI(api_key=zhipuai_api_key)
 
