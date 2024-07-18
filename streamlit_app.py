@@ -3,12 +3,14 @@ import requests
 from docx import Document
 import tempfile
 import os
-from zhipuai import ZhipuAI
 
-def generate_report(query, subscription_key, zhipuai_api_key):
+# Zhipu AI client配置
+from zhipuai import Client
+
+def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
     endpoint = "https://api.bing.microsoft.com/v7.0/search"
-    #引入智谱AI API
-    client = ZhipuAI(api_key=zhipuai_api_key) # 填写您自己的APIKey
+    client = Client(api_key=zhipuai_api_key)
+    
     mkt = 'en-US'
     params = {'q': query, 'mkt': mkt}
     headers = {'Ocp-Apim-Subscription-Key': subscription_key}
@@ -28,7 +30,7 @@ def generate_report(query, subscription_key, zhipuai_api_key):
                 full_url = f"https://r.jina.ai/{url}"
                 headers = {
                     "Accept": "application/json",
-                    "X-Return-Format": "text"
+                    "Authorization": f"Bearer {jina_api_key}"
                 }
 
                 try:
@@ -104,11 +106,12 @@ st.title("咨询报告生成器")
 
 subscription_key = st.text_input("请输入Bing Search API的Subscription Key：", type="password")
 zhipuai_api_key = st.text_input("请输入Zhipu AI的API Key：", type="password")
+jina_api_key = st.text_input("请输入Jina API的Key：", type="password")
 query = st.text_input("请输入查询内容：")
 
 if st.button("生成报告"):
-    if query and subscription_key and zhipuai_api_key:
-        report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key)
+    if query and subscription_key and zhipuai_api_key and jina_api_key:
+        report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key)
         if report_content:
             st.header("生成的咨询报告")
             st.write(report_content)
