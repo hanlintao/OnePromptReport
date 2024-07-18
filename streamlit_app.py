@@ -102,7 +102,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                 ],
             )
             report_content = report_response.choices[0].message.content
-             typewriter_effect(extracted_content)
+            typewriter_effect(extracted_content)
     except KeyError as e:
         st.error(f"生成报告时发生错误: {e}")
         st.error(f"报告提示词: {report_prompt}")
