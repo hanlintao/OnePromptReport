@@ -12,15 +12,19 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 # 使用Bing API进行搜索并获取网址
-def get_bing_search_urls(query, subscription_key, count=5):
+def get_bing_search_results(query, subscription_key, count=10):
     headers = {"Ocp-Apim-Subscription-Key": subscription_key}
     params = {"q": query, "count": count, "textDecorations": True, "textFormat": "HTML"}
     search_url = "https://api.bing.microsoft.com/v7.0/search"
     response = requests.get(search_url, headers=headers, params=params)
     response.raise_for_status()
     search_results = response.json()
-    urls = [result["url"] for result in search_results["webPages"]["value"]]
-    return urls
+    results = [{
+        "title": result["name"],
+        "url": result["url"],
+        "snippet": result["snippet"]
+    } for result in search_results["webPages"]["value"]]
+    return results
 
 # 打字机效果函数
 def typewriter_effect(text, speed=0.05):
@@ -93,7 +97,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
     try:
         if use_gpt4o:
             report_content = llm.invoke(report_prompt).content
-            typewriter_effect(extracted_content)
+            typewriter_effect(report_content)
         else:
             report_response = client.chat.completions.create(
                 model="glm-4-0520",
@@ -102,7 +106,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prom
                 ],
             )
             report_content = report_response.choices[0].message.content
-            typewriter_effect(extracted_content)
+            typewriter_effect(report_content)
     except KeyError as e:
         st.error(f"生成报告时发生错误: {e}")
         st.error(f"报告提示词: {report_prompt}")
@@ -156,32 +160,30 @@ with st.sidebar:
 
 query = st.text_input("请输入报告主题：")
 
-if st.button("生成报告"):
-    if query and subscription_key and jina_api_key and (zhipuai_api_key or openai_api_key):
-        # 获取用户输入的自定义URL
-        user_urls = [url for url in custom_urls if url]
-        if not user_urls:
-            # 如果用户没有输入任何自定义网址，则调用Bing API来从网上获取
-            urls = get_bing_search_urls(query, subscription_key, count=5)
-        else:
-            # 如果用户输入了1个自定义网址，那么剩下4个通过Bing API来获取
-            additional_urls_needed = 5 - len(user_urls)
-            if additional_urls_needed > 0:
-                additional_urls = get_bing_search_urls(query, subscription_key, count=additional_urls_needed)
-                urls = user_urls + additional_urls
-            else:
-                urls = user_urls
+if st.button("获取搜索结果"):
+    if query and subscription_key:
+        search_results = get_bing_search_results(query, subscription_key)
+        if search_results:
+            st.header("搜索结果")
+            selected_urls = []
+            for result in search_results:
+                if st.checkbox(f"{result['title']} ({result['url']})\n{result['snippet']}", key=result['url']):
+                    selected_urls.append(result['url'])
 
-        report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, urls, use_gpt4o, openai_api_key, openai_base_url)
-        if report_content:
-            st.header("生成的咨询报告")
-            typewriter_effect(report_content)
-            with open(temp_filename, "rb") as file:
-                btn = st.download_button(
-                    label="下载咨询报告",
-                    data=file,
-                    file_name="consulting_report.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
+            if st.button("开始生成报告"):
+                if selected_urls:
+                    report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2, selected_urls, use_gpt4o, openai_api_key, openai_base_url)
+                    if report_content:
+                        st.header("生成的咨询报告")
+                        typewriter_effect(report_content)
+                        with open(temp_filename, "rb") as file:
+                            btn = st.download_button(
+                                label="下载咨询报告",
+                                data=file,
+                                file_name="consulting_report.docx",
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            )
+                else:
+                    st.error("请选择至少一个搜索结果")
     else:
-        st.error("请输入所有必需的字段")
+        st.error("请输入报告主题和Bing Search API的Subscription Key")
