@@ -7,7 +7,7 @@ import os
 # Zhipu AI client配置
 from zhipuai import ZhipuAI
 
-def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
+def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2):
     endpoint = "https://api.bing.microsoft.com/v7.0/search"
     client = ZhipuAI(api_key=zhipuai_api_key)
     
@@ -26,7 +26,14 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
             combined_content = []
             references = []
 
+            progress_text = st.empty()
+            progress_bar = st.progress(0)
+            total_steps = len(urls)
+
             for i, url in enumerate(urls, 1):
+                progress_text.text(f"正在爬取网址 {i}/{total_steps}: {url}")
+                progress_bar.progress(i / total_steps)
+
                 full_url = f"https://r.jina.ai/{url}"
                 headers = {
                     "Accept": "application/json",
@@ -40,11 +47,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
                         response_data = response.json()
                         content = response_data['data']['text']
 
-                        prompt = f'''
-                        请提取这个网页中的核心内容，将其转变为一篇主题明确，结构清晰的新的文章：
-                        
-                        {content}
-                        '''
+                        prompt = prompt1.format(content=content)
 
                         response = client.chat.completions.create(
                             model="glm-4-0520",
@@ -66,11 +69,7 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
                     st.error(f"处理 {url} 时发生错误: {e}")
 
             combined_text = '\n'.join(combined_content)
-            report_prompt = f'''
-            请基于以下内容撰写一份完整的咨询报告，报告应包括标题、摘要、关键词、引言、核心内容、结论和参考文献：
-            
-            {combined_text}
-            '''
+            report_prompt = prompt2.format(content=combined_text)
 
             report_response = client.chat.completions.create(
                 model="glm-4-0520",
@@ -105,14 +104,21 @@ def generate_report(query, subscription_key, zhipuai_api_key, jina_api_key):
 
 st.title("咨询报告生成器")
 
-subscription_key = st.text_input("请输入Bing Search API的Subscription Key：", type="password")
-zhipuai_api_key = st.text_input("请输入Zhipu AI的API Key：", type="password")
-jina_api_key = st.text_input("请输入Jina API的Key：", type="password")
+with st.sidebar:
+    st.header("API Keys 配置")
+    subscription_key = st.text_input("请输入Bing Search API的Subscription Key：", type="password")
+    zhipuai_api_key = st.text_input("请输入Zhipu AI的API Key：", type="password")
+    jina_api_key = st.text_input("请输入Jina API的Key：", type="password")
+    
+    st.header("Prompt 配置")
+    prompt1 = st.text_area("提取内容的Prompt：", value="请提取这个网页中的核心内容，将其转变为一篇主题明确，结构清晰的新的文章：\n\n{content}")
+    prompt2 = st.text_area("生成报告的Prompt：", value="请基于以下内容撰写一份完整的咨询报告，报告应包括标题、摘要、关键词、引言、核心内容、结论和参考文献：\n\n{content}")
+
 query = st.text_input("请输入查询内容：")
 
 if st.button("生成报告"):
     if query and subscription_key and zhipuai_api_key and jina_api_key:
-        report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key)
+        report_content, temp_filename = generate_report(query, subscription_key, zhipuai_api_key, jina_api_key, prompt1, prompt2)
         if report_content:
             st.header("生成的咨询报告")
             st.write(report_content)
